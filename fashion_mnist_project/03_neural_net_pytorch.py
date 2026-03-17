@@ -16,17 +16,15 @@ from utils import load_data, plot_confusion_matrix
 device = torch.device('cpu')
 
 
-class MLP(nn.Module):
-    def __init__(self, hidden_size, dropout):
+class NeuralNet(nn.Module):
+    def __init__(self, hidden_size):
         super().__init__()
         self.net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(784, hidden_size),
             nn.ReLU(),
-            nn.Dropout(dropout),
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
-            nn.Dropout(dropout),
             nn.Linear(hidden_size, 10)
         )
 
@@ -44,11 +42,11 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, lr):
         total_loss = 0
         for images, labels in train_loader:
             images, labels = images.to(device), labels.to(device)
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            optimizer.zero_grad() # Zero out gradient before pass
+            outputs = model(images) # Pass in batch
+            loss = criterion(outputs, labels) # Compute loss
+            loss.backward() # Backwards propagation
+            optimizer.step() #  Perform gradient descent
             total_loss += loss.item() * images.size(0)
 
         avg_loss = total_loss / len(train_loader.dataset)
@@ -96,10 +94,8 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=256, shuffle=False)
 
     configs = [
-        {'hidden_size': 256, 'dropout': 0.3, 'lr': 1e-3},
-        {'hidden_size': 256, 'dropout': 0.2, 'lr': 5e-4},
-        {'hidden_size': 128, 'dropout': 0.3, 'lr': 1e-3},
-        {'hidden_size': 128, 'dropout': 0.2, 'lr': 1e-3},
+        {'hidden_size': 256, 'lr': 1e-3},
+        {'hidden_size': 128, 'lr': 1e-3},
     ]
 
     epochs = 15
@@ -110,11 +106,10 @@ def main():
     best_config = None
 
     for i, cfg in enumerate(configs):
-        print(f"\n=== Config {i+1}/{len(configs)}: hidden={cfg['hidden_size']}, "
-              f"dropout={cfg['dropout']}, lr={cfg['lr']} ===")
+        print(f"\n=== Config {i+1}/{len(configs)}: hidden={cfg['hidden_size']}, lr={cfg['lr']} ===")
 
         torch.manual_seed(42)
-        model = MLP(cfg['hidden_size'], cfg['dropout']).to(device)
+        model = NeuralNet(cfg['hidden_size']).to(device)
 
         start = time.time()
         val_accs = train_and_evaluate(model, train_loader, val_loader, epochs, cfg['lr'])
@@ -122,12 +117,11 @@ def main():
 
         final_val_acc = val_accs[-1]
         max_val_acc = max(val_accs)
-        print(f"    Final val_acc: {final_val_acc:.4f}, Best val_acc: {max_val_acc:.4f}, "
+        print(f"Final val_acc: {final_val_acc:.4f}, Best val_acc: {max_val_acc:.4f}, "
               f"Time: {elapsed:.1f}s")
 
         sweep_results.append({
             'hidden_size': cfg['hidden_size'],
-            'dropout': cfg['dropout'],
             'lr': cfg['lr'],
             'best_val_acc': max_val_acc,
             'final_val_acc': final_val_acc,
@@ -145,37 +139,35 @@ def main():
     ax.plot(range(1, epochs + 1), best_val_accs, marker='o')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Validation Accuracy')
-    ax.set_title(f"MLP Validation Accuracy (hidden={best_config['hidden_size']}, "
-                 f"dropout={best_config['dropout']}, lr={best_config['lr']})")
+    ax.set_title(f"NeuralNet Validation Accuracy (hidden={best_config['hidden_size']}, lr={best_config['lr']})")
     ax.grid(True, alpha=0.3)
-    plt.savefig('outputs/figures/mlp_val_curve.png', dpi=150, bbox_inches='tight')
+    plt.savefig('outputs/figures/NeuralNet_val_curve.png', dpi=150, bbox_inches='tight')
     plt.close()
-    print("\nSaved: outputs/figures/mlp_val_curve.png")
+    print("\nSaved: outputs/figures/NeuralNet_val_curve.png")
 
     # Confusion matrix for best config
     y_true, y_pred = get_predictions(best_model, val_loader)
     plot_confusion_matrix(y_true, y_pred,
-                          f"MLP Confusion Matrix (Validation)",
-                          'outputs/figures/mlp_confusion.png')
-    print("Saved: outputs/figures/mlp_confusion.png")
+                          f"NeuralNet Confusion Matrix (Validation)",
+                          'outputs/figures/NeuralNet_confusion.png')
+    print("Saved: outputs/figures/NeuralNet_confusion.png")
 
     # Save sweep results
-    pd.DataFrame(sweep_results).to_csv('outputs/results/mlp_sweep.csv', index=False)
-    print("Saved: outputs/results/mlp_sweep.csv")
+    pd.DataFrame(sweep_results).to_csv('outputs/results/NeuralNet_sweep.csv', index=False)
+    print("Saved: outputs/results/NeuralNet_sweep.csv")
 
     # Save best model
-    torch.save(best_model.state_dict(), 'outputs/results/best_mlp.pt')
-    print("Saved: outputs/results/best_mlp.pt")
+    torch.save(best_model.state_dict(), 'outputs/results/best_NeuralNet.pt')
+    print("Saved: outputs/results/best_NeuralNet.pt")
 
     # Save best config info for final evaluation
     best_config_info = {
         'hidden_size': best_config['hidden_size'],
-        'dropout': best_config['dropout']
     }
-    pd.DataFrame([best_config_info]).to_csv('outputs/results/best_mlp_config.csv', index=False)
+    pd.DataFrame([best_config_info]).to_csv('outputs/results/best_NeuralNet_config.csv', index=False)
 
-    print(f"\n=== Best MLP Config ===")
-    print(f"hidden_size={best_config['hidden_size']}, dropout={best_config['dropout']}, "
+    print(f"\n=== Best NeuralNet Config ===")
+    print(f"hidden_size={best_config['hidden_size']}"
           f"lr={best_config['lr']}")
     print(f"Best val_acc: {best_val_acc:.4f}")
 
