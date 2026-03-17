@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,9 +16,9 @@ torch.manual_seed(42)
 
 from utils import (load_data, get_flat_arrays, plot_confusion_matrix)
 import importlib
-mlp_module = importlib.import_module('03_neural_net_pytorch')
+NeuralNet_module = importlib.import_module('03_neural_net_pytorch')
 cnn_module = importlib.import_module('04_cnn_pytorch')
-MLP = mlp_module.MLP
+NeuralNet = NeuralNet_module.NeuralNet
 CNN = cnn_module.CNN
 
 device = torch.device('cpu')
@@ -86,16 +86,16 @@ def main():
 
     # ---- Neural Network ----
     print("\nLoading best Neural Network...")
-    mlp_config = pd.read_csv('outputs/results/best_mlp_config.csv')
-    hidden_size = int(mlp_config['hidden_size'].iloc[0])
-    mlp_model = MLP(hidden_size).to(device)
-    mlp_model.load_state_dict(torch.load('outputs/results/best_NeuralNet.pt', map_location=device))
+    NeuralNet_config = pd.read_csv('outputs/results/best_NeuralNet_config.csv')
+    hidden_size = int(NeuralNet_config['hidden_size'].iloc[0])
+    NeuralNet_model = NeuralNet(hidden_size).to(device)
+    NeuralNet_model.load_state_dict(torch.load('outputs/results/best_NeuralNet.pt', map_location=device))
 
-    mlp_sweep = pd.read_csv('outputs/results/NeuralNet_sweep.csv')
-    mlp_val_acc = mlp_sweep['best_val_acc'].max()
+    NeuralNet_sweep = pd.read_csv('outputs/results/NeuralNet_sweep.csv')
+    NeuralNet_val_acc = NeuralNet_sweep['best_val_acc'].max()
 
     test_loader = DataLoader(test_ds, batch_size=256, shuffle=False)
-    mlp_model.eval()
+    NeuralNet_model.eval()
     correct = 0
     total = 0
     all_preds = []
@@ -103,17 +103,17 @@ def main():
     with torch.no_grad():
         for images, labels in test_loader:
             images = images.to(device)
-            outputs = mlp_model(images)
+            outputs = NeuralNet_model(images)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.numpy())
-    mlp_test_acc = correct / total
-    print(f"  MLP test_acc: {mlp_test_acc:.4f} (val_acc: {mlp_val_acc:.4f})")
+    NeuralNet_test_acc = correct / total
+    print(f"  NeuralNet test_acc: {NeuralNet_test_acc:.4f} (val_acc: {NeuralNet_val_acc:.4f})")
     results.append({
-        'model': 'MLP', 'val_acc': mlp_val_acc,
-        'test_acc': mlp_test_acc, 'train_time_sec': 0
+        'model': 'NeuralNet', 'val_acc': NeuralNet_val_acc,
+        'test_acc': NeuralNet_test_acc, 'train_time_sec': 0
     })
 
     # ---- CNN ----
