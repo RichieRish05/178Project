@@ -9,14 +9,14 @@ import os
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+from sklearn.decomposition import PCA
 
 np.random.seed(42)
 torch.manual_seed(42)
 
-from utils import (load_data, get_flat_arrays, apply_pca, plot_confusion_matrix,
-                   save_results, CLASS_NAMES)
+from utils import (load_data, get_flat_arrays, plot_confusion_matrix)
 import importlib
-mlp_module = importlib.import_module('03_mlp_pytorch')
+mlp_module = importlib.import_module('03_neural_net_pytorch')
 cnn_module = importlib.import_module('04_cnn_pytorch')
 MLP = mlp_module.MLP
 CNN = cnn_module.CNN
@@ -37,8 +37,6 @@ def main():
     y_trainval = np.concatenate([y_train, y_val])
 
     # PCA on combined train+val
-    from utils import apply_pca as _apply_pca
-    from sklearn.decomposition import PCA
     pca = PCA(n_components=50, random_state=42)
     X_trainval_pca = pca.fit_transform(X_trainval)
     X_test_pca = pca.transform(X_test)
@@ -86,15 +84,14 @@ def main():
         'test_acc': lr_test_acc, 'train_time_sec': lr_time
     })
 
-    # ---- MLP ----
-    print("\nLoading best MLP...")
+    # ---- Neural Network ----
+    print("\nLoading best Neural Network...")
     mlp_config = pd.read_csv('outputs/results/best_mlp_config.csv')
     hidden_size = int(mlp_config['hidden_size'].iloc[0])
-    mlp_dropout = float(mlp_config['dropout'].iloc[0])
-    mlp_model = MLP(hidden_size, mlp_dropout).to(device)
-    mlp_model.load_state_dict(torch.load('outputs/results/best_mlp.pt', map_location=device))
+    mlp_model = MLP(hidden_size).to(device)
+    mlp_model.load_state_dict(torch.load('outputs/results/best_NeuralNet.pt', map_location=device))
 
-    mlp_sweep = pd.read_csv('outputs/results/mlp_sweep.csv')
+    mlp_sweep = pd.read_csv('outputs/results/NeuralNet_sweep.csv')
     mlp_val_acc = mlp_sweep['best_val_acc'].max()
 
     test_loader = DataLoader(test_ds, batch_size=256, shuffle=False)
@@ -124,8 +121,7 @@ def main():
     cnn_config = pd.read_csv('outputs/results/best_cnn_config.csv')
     filters1 = int(cnn_config['filters1'].iloc[0])
     filters2 = int(cnn_config['filters2'].iloc[0])
-    cnn_dropout = float(cnn_config['dropout'].iloc[0])
-    cnn_model = CNN(filters1, filters2, cnn_dropout).to(device)
+    cnn_model = CNN(filters1, filters2).to(device)
     cnn_model.load_state_dict(torch.load('outputs/results/best_cnn.pt', map_location=device))
 
     cnn_sweep = pd.read_csv('outputs/results/cnn_sweep.csv')

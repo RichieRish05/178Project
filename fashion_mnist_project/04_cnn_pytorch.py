@@ -17,7 +17,7 @@ device = torch.device('cpu')
 
 
 class CNN(nn.Module):
-    def __init__(self, filters1, filters2, dropout):
+    def __init__(self, filters1, filters2):
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(1, filters1, 3, padding=1),
@@ -31,7 +31,6 @@ class CNN(nn.Module):
             nn.Flatten(),
             nn.Linear(filters2 * 7 * 7, 128),
             nn.ReLU(),
-            nn.Dropout(dropout),
             nn.Linear(128, 10)
         )
 
@@ -103,9 +102,8 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=256, shuffle=False)
 
     configs = [
-        {'filters1': 32, 'filters2': 64, 'dropout': 0.5, 'lr': 1e-3},
-        {'filters1': 32, 'filters2': 64, 'dropout': 0.3, 'lr': 1e-3},
-        {'filters1': 16, 'filters2': 32, 'dropout': 0.5, 'lr': 1e-3},
+        {'filters1': 32, 'filters2': 64, 'lr': 1e-3},
+        {'filters1': 16, 'filters2': 32, 'lr': 1e-3},
     ]
 
     epochs = 20
@@ -116,11 +114,10 @@ def main():
     best_config = None
 
     for i, cfg in enumerate(configs):
-        print(f"\n=== Config {i+1}/{len(configs)}: filters={cfg['filters1']}/{cfg['filters2']}, "
-              f"dropout={cfg['dropout']}, lr={cfg['lr']} ===")
+        print(f"\n=== Config {i+1}/{len(configs)}: filters={cfg['filters1']}/{cfg['filters2']}, lr={cfg['lr']} ===")
 
         torch.manual_seed(42)
-        model = CNN(cfg['filters1'], cfg['filters2'], cfg['dropout']).to(device)
+        model = CNN(cfg['filters1'], cfg['filters2']).to(device)
 
         start = time.time()
         val_accs = train_and_evaluate(model, train_loader, val_loader, epochs, cfg['lr'])
@@ -133,7 +130,6 @@ def main():
 
         sweep_results.append({
             'filters': f"{cfg['filters1']}/{cfg['filters2']}",
-            'dropout': cfg['dropout'],
             'lr': cfg['lr'],
             'best_val_acc': max_val_acc,
             'final_val_acc': final_val_acc,
@@ -151,8 +147,7 @@ def main():
     ax.plot(range(1, epochs + 1), best_val_accs, marker='o')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Validation Accuracy')
-    ax.set_title(f"CNN Validation Accuracy (filters={best_config['filters1']}/{best_config['filters2']}, "
-                 f"dropout={best_config['dropout']})")
+    ax.set_title(f"CNN Validation Accuracy (filters={best_config['filters1']}/{best_config['filters2']})")
     ax.grid(True, alpha=0.3)
     plt.savefig('outputs/figures/cnn_val_curve.png', dpi=150, bbox_inches='tight')
     plt.close()
@@ -177,13 +172,11 @@ def main():
     best_config_info = {
         'filters1': best_config['filters1'],
         'filters2': best_config['filters2'],
-        'dropout': best_config['dropout']
     }
     pd.DataFrame([best_config_info]).to_csv('outputs/results/best_cnn_config.csv', index=False)
 
     print(f"\n=== Best CNN Config ===")
-    print(f"filters={best_config['filters1']}/{best_config['filters2']}, "
-          f"dropout={best_config['dropout']}, lr={best_config['lr']}")
+    print(f"filters={best_config['filters1']}/{best_config['filters2']}, lr={best_config['lr']}")
     print(f"Best val_acc: {best_val_acc:.4f}")
 
 
