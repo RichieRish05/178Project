@@ -14,7 +14,7 @@ CLASS_NAMES = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
 
 
 def load_data():
-    """Load Fashion-MNIST and return train/val/test splits (48k/12k/10k)."""
+    """Load Fashion-MNIST and return train/val/test splits."""
     transform = transforms.ToTensor()
 
     full_train = torchvision.datasets.FashionMNIST(
@@ -24,7 +24,8 @@ def load_data():
 
     generator = torch.Generator().manual_seed(42)
     train_dataset, val_dataset = torch.utils.data.random_split(
-        full_train, [48000, 12000], generator=generator)
+        full_train, [48000, 12000], generator=generator
+    )
 
     return train_dataset, val_dataset, test_dataset
 

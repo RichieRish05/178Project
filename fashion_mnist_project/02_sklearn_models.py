@@ -61,6 +61,7 @@ def main():
     best_C = None
     best_lr_preds = None
 
+    # Test different regularization strengths
     for C in [0.01, 0.1, 1.0, 10.0]:
         print(f"  C={C}: ", end="", flush=True)
         start = time.time()
