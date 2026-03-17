@@ -13,12 +13,10 @@ from utils import CLASS_NAMES, load_data
 def main():
     os.makedirs('outputs/figures', exist_ok=True)
 
-    # Load full training set (not split) for exploration
+    # Load full training set for exploration
     transform = transforms.ToTensor()
     full_train = torchvision.datasets.FashionMNIST(
         root='./data', train=True, download=True, transform=transform)
-    test_dataset = torchvision.datasets.FashionMNIST(
-        root='./data', train=False, download=True, transform=transform)
 
     # Extract all images and labels
     train_loader = torch.utils.data.DataLoader(full_train, batch_size=len(full_train))
